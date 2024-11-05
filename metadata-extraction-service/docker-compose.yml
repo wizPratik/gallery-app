@@ -1,0 +1,33 @@
+version: '3.8'  # or any version you prefer
+services:
+  gallery-service:
+    build: .
+    ports:
+      - "5001:5001"
+    depends_on:
+      - mysql
+      - rabbitmq
+    environment:
+      - RABBITMQ_HOST=rabbitmq   # This ensures the Flask app uses the correct host
+
+  mysql:
+    image: mysql:5.7
+    platform: linux/amd64  # Force to pull the amd64 version
+    environment:
+      MYSQL_ROOT_PASSWORD: YOUR_PASSWORD
+      MYSQL_DATABASE: gallery_database  # This is for the initial database to be created
+    ports:
+      - "3306:3306"
+    volumes:
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql  # Mount the initialization script
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  rabbitmq:
+    image: rabbitmq:3-management
+    ports:
+      - "5672:5672"
+      - "15672:15672"
