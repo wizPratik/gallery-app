@@ -19,3 +19,7 @@ Gallery App
 +-- docker-compose.yml
 +-- README.md
 ```
+
+## Run the Application
+
+Execute the `docker-compose.yml` file
