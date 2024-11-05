@@ -1,0 +1,106 @@
+version: "3.8"
+services:
+    core-service:
+        build:
+            context: ./core-service
+            dockerfile: Dockerfile
+        ports:
+            - "8080:8080"
+        depends_on:
+            - rabbitmq
+            - thumbnail-generation-service
+            - metadata-extraction-service
+            - object-detection-service
+        environment:
+            - SPRING_DATASOURCE_URL=jdbc:mysql://core-db:3306/coredb
+            - SPRING_DATASOURCE_USERNAME=root
+            - SPRING_DATASOURCE_PASSWORD=password
+            - RABBITMQ_HOST=rabbitmq
+            - RABBITMQ_PORT=5672
+            - RABBITMQ_USERNAME=guest
+            - RABBITMQ_PASSWORD=guest
+
+    core-db:
+        image: mysql:8.0
+        environment:
+            MYSQL_ROOT_PASSWORD: password
+            MYSQL_DATABASE: coredb
+        ports:
+            - "3306:3306"
+        volumes:
+            - core-db-data:/var/lib/mysql
+
+    thumbnail-generation-service:
+        build:
+            context: ./thumbnail-generation-service
+            dockerfile: Dockerfile
+        ports:
+            - "8081:8081"
+        depends_on:
+            - rabbitmq
+        environment:
+            - RABBITMQ_HOST=rabbitmq
+            - RABBITMQ_PORT=5672
+            - RABBITMQ_USERNAME=guest
+            - RABBITMQ_PASSWORD=guest
+
+    # thumbnail-db:
+    # image:
+    # environment:
+    # ports:
+    # volumes:
+
+    metadata-extraction-service:
+        build:
+            context: ./metadata-extraction-service
+            dockerfile: Dockerfile
+        ports:
+            - "8082:8082"
+        depends_on:
+            - rabbitmq
+        environment:
+            - RABBITMQ_HOST=rabbitmq
+            - RABBITMQ_PORT=5672
+            - RABBITMQ_USERNAME=guest
+            - RABBITMQ_PASSWORD=guest
+
+    # metadata-db:
+    # image:
+    # environment:
+    # ports:
+    # volumes:
+
+    object-detection-service:
+        build:
+            context: ./object-detection-service
+            dockerfile: Dockerfile
+        ports:
+            - "8083:8083"
+        depends_on:
+            - rabbitmq
+        environment:
+            - RABBITMQ_HOST=rabbitmq
+            - RABBITMQ_PORT=5672
+            - RABBITMQ_USERNAME=guest
+            - RABBITMQ_PASSWORD=guest
+
+    # object-detection-db:
+    # image:
+    # environment:
+    # ports:
+    # volumes:
+
+    rabbitmq:
+        image: rabbitmq:3-management
+        ports:
+            - "5672:5672" # RabbitMQ service
+            - "15672:15672" # RabbitMQ UI
+        environment:
+            - RABBITMQ_DEFAULT_USER=guest
+            - RABBITMQ_DEFAULT_PASS=guest
+
+volumes:
+    core-db-data:
+    thumbnail-db-data:
+    metadata-db-data:
+    object-detection-db-data:
