@@ -1,5 +1,6 @@
-CREATE DATABASE IF NOT EXISTS gallery_database;  -- Create the database if it doesn't exist
-USE gallery_database;  -- Use the database
+CREATE DATABASE IF NOT EXISTS metadata_db;  -- Create the database if it doesn't exist
+
+USE metadata_db;  -- Use the database
 
 CREATE TABLE IF NOT EXISTS image_metadata (
     image_id VARCHAR(255) PRIMARY KEY,

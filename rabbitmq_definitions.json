@@ -1,0 +1,96 @@
+{
+  "users": [
+    {
+      "name": "admin",
+      "password": "admin",
+      "tags": "administrator"
+    },
+    {
+      "name": "guest",
+      "password": "guest",
+      "tags": ""
+    }
+  ],
+  "vhosts": [
+    {
+      "name": "/"
+    }
+  ],
+  "permissions": [
+    {
+      "user": "admin",
+      "vhost": "/",
+      "configure": ".*",
+      "write": ".*",
+      "read": ".*"
+    },
+    {
+      "user": "guest",
+      "vhost": "/",
+      "configure": ".*",
+      "write": ".*",
+      "read": ".*"
+    }
+  ],
+  "queues": [
+    {
+      "name": "core.metadata.queue",
+      "durable": true,
+      "vhost": "/"
+    },
+    {
+      "name": "core.detection.queue",
+      "durable": true,
+      "vhost": "/"
+    },
+    {
+      "name": "core.thumbnail.queue",
+      "durable": true,
+      "vhost": "/"
+    },
+    {
+      "name": "metadata.core.queue",
+      "durable": true,
+      "vhost": "/"
+    },
+    {
+      "name": "detection.core.queue",
+      "durable": true,
+      "vhost": "/"
+    },
+    {
+      "name": "thumbnail.core.queue",
+      "durable": true,
+      "vhost": "/"
+    }
+  ],
+  "exchanges": [
+    {
+      "name": "broadcast.common.exchange",
+      "type": "fanout",
+      "durable": true,
+      "auto_delete": false,
+      "vhost": "/"
+    }
+  ],
+  "bindings": [
+    {
+      "source": "broadcast.common.exchange",
+      "destination": "core.metadata.queue",
+      "destination_type": "queue",
+      "vhost": "/"
+    },
+    {
+      "source": "broadcast.common.exchange",
+      "destination": "core.detection.queue",
+      "destination_type": "queue",
+      "vhost": "/"
+    },
+    {
+      "source": "broadcast.common.exchange",
+      "destination": "core.thumbnail.queue",
+      "destination_type": "queue",
+      "vhost": "/"
+    }
+  ]
+}

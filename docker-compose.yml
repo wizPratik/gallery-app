@@ -1,4 +1,3 @@
-version: "3.8"
 services:
     core-service:
         build:
@@ -7,42 +6,54 @@ services:
         ports:
             - "8080:8080"
         depends_on:
-            - rabbitmq
-            - thumbnail-generation-service
-            - metadata-extraction-service
-            - object-detection-service
+            core-db:
+                condition: service_healthy
+            rabbitmq:
+                condition: service_started
+            localstack:
+                condition: service_healthy
+        networks:
+            - app-network
         environment:
-            - SPRING_DATASOURCE_URL=jdbc:mysql://core-db:3306/coredb
+            - SPRING_DATASOURCE_URL=jdbc:mysql://core-db:3306/core_db?serverTimezone=UTC
             - SPRING_DATASOURCE_USERNAME=root
-            - SPRING_DATASOURCE_PASSWORD=password
+            - SPRING_DATASOURCE_PASSWORD=P4ssw0rd
             - RABBITMQ_HOST=rabbitmq
-            - RABBITMQ_PORT=5672
-            - RABBITMQ_USERNAME=guest
-            - RABBITMQ_PASSWORD=guest
+            - aws.s3.endpoint=http://localstack:4566
+            - service.metadata.endpoint=http://metadata-extraction-service:8082/api/metadata/
 
     core-db:
         image: mysql:8.0
         environment:
-            MYSQL_ROOT_PASSWORD: password
-            MYSQL_DATABASE: coredb
+            MYSQL_ROOT_PASSWORD: P4ssw0rd
+            MYSQL_DATABASE: core_db
         ports:
             - "3306:3306"
+        networks:
+            - app-network
         volumes:
             - core-db-data:/var/lib/mysql
+        healthcheck:
+            test: [ "CMD", "mysqladmin", "ping", "-h", "localhost", "-pP4ssw0rd" ]
+            interval: 20s
+            timeout: 15s
+            retries: 5
 
-    thumbnail-generation-service:
-        build:
-            context: ./thumbnail-generation-service
-            dockerfile: Dockerfile
-        ports:
-            - "8081:8081"
-        depends_on:
-            - rabbitmq
-        environment:
-            - RABBITMQ_HOST=rabbitmq
-            - RABBITMQ_PORT=5672
-            - RABBITMQ_USERNAME=guest
-            - RABBITMQ_PASSWORD=guest
+    #    thumbnail-generation-service:
+    #        build:
+    #            context: ./thumbnail-generation-service
+    #            dockerfile: Dockerfile
+    #        ports:
+    #            - "8081:8081"
+    #        depends_on:
+    #            - thumbnail-db
+    #            - rabbitmq
+    #            - localstack
+    #        environment:
+    #            - RABBITMQ_HOST=rabbitmq
+    #            - RABBITMQ_PORT=5672
+    #            - RABBITMQ_USERNAME=guest
+    #            - RABBITMQ_PASSWORD=guest
 
     # thumbnail-db:
     # image:
@@ -54,50 +65,105 @@ services:
         build:
             context: ./metadata-extraction-service
             dockerfile: Dockerfile
+        env_file:
+            - ./metadata-extraction-service/common.env
         ports:
-            - "8082:8082"
+            - "8082:5001"
+        networks:
+            - app-network
         depends_on:
-            - rabbitmq
+            metadata-db:
+                condition: service_healthy
+            rabbitmq:
+                condition: service_started
+            localstack:
+                condition: service_healthy
         environment:
             - RABBITMQ_HOST=rabbitmq
-            - RABBITMQ_PORT=5672
-            - RABBITMQ_USERNAME=guest
-            - RABBITMQ_PASSWORD=guest
+            - MYSQL_HOST=metadata-db
 
-    # metadata-db:
-    # image:
-    # environment:
-    # ports:
-    # volumes:
+    metadata-db:
+        image: mysql:8.0
+        environment:
+            MYSQL_ROOT_PASSWORD: P4ssw0rd
+            MYSQL_DATABASE: metadata_db
+        ports:
+            - "3307:3306"
+        networks:
+            - app-network
+        volumes:
+            - ./metadata-extraction-service/db/setup.sql:/docker-entrypoint-initdb.d/setup.sql
+        healthcheck:
+            test: [ "CMD", "mysqladmin", "ping", "-h", "localhost", "-pP4ssw0rd" ]
+            interval: 20s
+            timeout: 10s
+            retries: 5
 
     object-detection-service:
         build:
             context: ./object-detection-service
             dockerfile: Dockerfile
         ports:
-            - "8083:8083"
+            - "8083:3000"
         depends_on:
+            - object-detection-db
             - rabbitmq
+            - localstack
         environment:
             - RABBITMQ_HOST=rabbitmq
             - RABBITMQ_PORT=5672
             - RABBITMQ_USERNAME=guest
             - RABBITMQ_PASSWORD=guest
+            - MONGO_URI=mongodb://object-detection-db:27017/image-content-db
+            - INBOUND_QUEUE=core.detection.queue
+            - OUTBOUND_QUEUE=detection.core.queue
+            - RABBITMQ_URI=amqp://rabbitmq
 
-    # object-detection-db:
-    # image:
-    # environment:
-    # ports:
-    # volumes:
+    object-detection-db:
+        image: mongo:6
+        ports:
+            - "27017:27017"
+        volumes:
+            - object-detection-db-data:/data/db
 
     rabbitmq:
         image: rabbitmq:3-management
         ports:
             - "5672:5672" # RabbitMQ service
             - "15672:15672" # RabbitMQ UI
+        networks:
+            - app-network
         environment:
             - RABBITMQ_DEFAULT_USER=guest
             - RABBITMQ_DEFAULT_PASS=guest
+            - RABBITMQ_SERVER_ADDITIONAL_ERL_ARGS=-rabbitmq_management load_definitions "/tmp/rabbit.definitions.json"
+        volumes:
+            - ./rabbitmq_definitions.json:/tmp/rabbit.definitions.json
+#        healthcheck:
+#            test: [ "CMD", "curl", "-f", "http://localhost:15672" ]
+#            interval: 20s
+#            timeout: 10s
+#            retries: 5
+
+    localstack:
+        image: localstack/localstack:3.8.1
+        environment:
+            - SERVICES=s3
+            - AWS_ACCESS_KEY_ID=test
+            - AWS_SECRET_ACCESS_KEY=test
+        ports:
+            - "4566:4566"
+        networks:
+            - app-network
+        healthcheck:
+            test: [ "CMD", "curl", "-f", "http://localhost:4566" ]
+            interval: 20s
+            timeout: 10s
+            retries: 5
+
+networks:
+    app-network:
+        driver: bridge
 
 volumes:
     core-db-data:
