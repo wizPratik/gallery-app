@@ -10,10 +10,7 @@ Gallery App
 +-- metadata-extraction-service/
 |   +-- src/
 |   +-- Dockerfile
-+-- object-detection-service/
-|   +-- src/
-|   +-- Dockerfile
-+-- thumbnail-generation-service/
++-- thumbnail-service/
 |   +-- src/
 |   +-- Dockerfile
 +-- docker-compose.yml
