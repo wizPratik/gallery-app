@@ -1,0 +1,5 @@
+flask
+pika
+boto3
+Pillow
+requests

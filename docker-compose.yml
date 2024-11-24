@@ -20,7 +20,6 @@ services:
             - SPRING_DATASOURCE_PASSWORD=P4ssw0rd
             - RABBITMQ_HOST=rabbitmq
             - aws.s3.endpoint=http://localstack:4566
-            - service.metadata.endpoint=http://metadata-extraction-service:8082/api/metadata/
 
     core-db:
         image: mysql:8.0
@@ -39,27 +38,27 @@ services:
             timeout: 15s
             retries: 5
 
-    #    thumbnail-generation-service:
-    #        build:
-    #            context: ./thumbnail-generation-service
-    #            dockerfile: Dockerfile
-    #        ports:
-    #            - "8081:8081"
-    #        depends_on:
-    #            - thumbnail-db
-    #            - rabbitmq
-    #            - localstack
-    #        environment:
-    #            - RABBITMQ_HOST=rabbitmq
-    #            - RABBITMQ_PORT=5672
-    #            - RABBITMQ_USERNAME=guest
-    #            - RABBITMQ_PASSWORD=guest
-
-    # thumbnail-db:
-    # image:
-    # environment:
-    # ports:
-    # volumes:
+    thumbnail-service:
+        build:
+            context: ./thumbnail-service/app
+            dockerfile: Dockerfile
+        environment:
+            AWS_ACCESS_KEY_ID: test
+            AWS_SECRET_ACCESS_KEY: test
+            AWS_REGION: us-east-1
+            S3_INPUT_BUCKET: source-bucket
+            S3_OUTPUT_BUCKET: thumbnail-bucket
+            RABBITMQ_HOST: rabbitmq
+            LOCALSTACK_HOSTNAME: localstack
+        depends_on:
+            rabbitmq:
+                condition: service_healthy
+            localstack:
+                condition: service_healthy
+        ports:
+            - "8081:5000"
+        networks:
+            - app-network
 
     metadata-extraction-service:
         build:
@@ -99,32 +98,6 @@ services:
             timeout: 10s
             retries: 5
 
-    object-detection-service:
-        build:
-            context: ./object-detection-service
-            dockerfile: Dockerfile
-        ports:
-            - "8083:3000"
-        depends_on:
-            - object-detection-db
-            - rabbitmq
-            - localstack
-        environment:
-            - RABBITMQ_HOST=rabbitmq
-            - RABBITMQ_PORT=5672
-            - RABBITMQ_USERNAME=guest
-            - RABBITMQ_PASSWORD=guest
-            - MONGO_URI=mongodb://object-detection-db:27017/image-content-db
-            - INBOUND_QUEUE=core.detection.queue
-            - OUTBOUND_QUEUE=detection.core.queue
-            - RABBITMQ_URI=amqp://rabbitmq
-
-    object-detection-db:
-        image: mongo:6
-        ports:
-            - "27017:27017"
-        volumes:
-            - object-detection-db-data:/data/db
 
     rabbitmq:
         image: rabbitmq:3-management
@@ -139,11 +112,11 @@ services:
             - RABBITMQ_SERVER_ADDITIONAL_ERL_ARGS=-rabbitmq_management load_definitions "/tmp/rabbit.definitions.json"
         volumes:
             - ./rabbitmq_definitions.json:/tmp/rabbit.definitions.json
-#        healthcheck:
-#            test: [ "CMD", "curl", "-f", "http://localhost:15672" ]
-#            interval: 20s
-#            timeout: 10s
-#            retries: 5
+        healthcheck:
+            test: ["CMD", "rabbitmqctl", "status"]
+            interval: 20s
+            timeout: 10s
+            retries: 5
 
     localstack:
         image: localstack/localstack:3.8.1
@@ -151,6 +124,7 @@ services:
             - SERVICES=s3
             - AWS_ACCESS_KEY_ID=test
             - AWS_SECRET_ACCESS_KEY=test
+            - DATA_DIR=/tmp/localstack/data
         ports:
             - "4566:4566"
         networks:

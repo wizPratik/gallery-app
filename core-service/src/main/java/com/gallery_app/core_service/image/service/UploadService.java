@@ -27,6 +27,7 @@ public class UploadService {
         try {
             String bucketName = awsConfig.getBucketName();
             s3Client.createBucket(b -> b.bucket(bucketName));
+            s3Client.createBucket(b -> b.bucket("thumbnail-bucket"));
 
             Map<String, String> metadata = new HashMap<>();
             metadata.put("original-filename", file.getOriginalFilename());

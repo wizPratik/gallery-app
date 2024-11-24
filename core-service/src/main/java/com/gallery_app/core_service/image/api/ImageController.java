@@ -4,7 +4,6 @@ import com.gallery_app.core_service.image.entity.Image;
 import com.gallery_app.core_service.image.model.ImageDTO;
 import com.gallery_app.core_service.image.service.ImageService;
 import com.gallery_app.core_service.image.service.UploadService;
-import com.gallery_app.core_service.metadata.MetadataClient;
 import com.gallery_app.core_service.mq.MessageProducer;
 import com.gallery_app.core_service.util.exceptions.BadRequestException;
 import com.google.gson.JsonObject;
@@ -14,7 +13,15 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestPart;
+import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.Arrays;
@@ -30,7 +37,6 @@ public class ImageController {
     private final ImageService imageService;
     private final UploadService uploadService;
     private final MessageProducer messageProducer;
-    private final MetadataClient metadataClient;
 
     @GetMapping
     public ResponseEntity<List<ImageDTO>> getAllImages() {
@@ -79,15 +85,6 @@ public class ImageController {
         JsonObject response = new JsonObject();
         response.addProperty("uuid", String.valueOf(createdUuid));
         return new ResponseEntity<>(response.toString(), HttpStatus.CREATED);
-    }
-
-    @GetMapping("/{uuid}/metadata")
-    public ResponseEntity<String> getImageMetadata(@PathVariable(name = "uuid") final UUID uuid) {
-        try {
-           return ResponseEntity.ok(metadataClient.fetchMetadata(uuid.toString()));
-        } catch (Exception e) {
-            return ResponseEntity.internalServerError().body(e.getMessage());
-        }
     }
 
 }

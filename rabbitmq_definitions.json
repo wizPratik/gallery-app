@@ -39,22 +39,12 @@
       "vhost": "/"
     },
     {
-      "name": "core.detection.queue",
-      "durable": true,
-      "vhost": "/"
-    },
-    {
       "name": "core.thumbnail.queue",
       "durable": true,
       "vhost": "/"
     },
     {
       "name": "metadata.core.queue",
-      "durable": true,
-      "vhost": "/"
-    },
-    {
-      "name": "detection.core.queue",
       "durable": true,
       "vhost": "/"
     },
@@ -77,12 +67,6 @@
     {
       "source": "broadcast.common.exchange",
       "destination": "core.metadata.queue",
-      "destination_type": "queue",
-      "vhost": "/"
-    },
-    {
-      "source": "broadcast.common.exchange",
-      "destination": "core.detection.queue",
       "destination_type": "queue",
       "vhost": "/"
     },
